@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Travis Ashcraft">
+    <meta name="description" content="CDC AI Persona Tester: interact with AI personas Nick, Jane, and Sarah using live prompts.">
+    <title>CDC AI Persona Tester</title>
+    <!-- Link to external stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+
+    <link rel="icon" type="images/jpg" href="assets/favicon.jpg">
+</head>
+<body>
+
+<img src="assets/TSTCLogo-PrimaryNavy%20(1).png" alt="TSTC Logo" style="max-width: 200px; display: block; margin: 0 auto 1rem;">
+
+
+<h1>CDC AI Persona Tester</h1>
+
+<label>
+    Pick persona:
+    <select id="persona">
+        <option>Nick</option>
+        <option>Jane</option>
+        <option>Sarah</option>
+    </select>
+</label>
+
+<div>
+    <label>
+        Your prompt:
+        <textarea id="userInput" placeholder="e.g. Describe how you feel today."></textarea>
+    </label>
+</div>
+
+<div>
+    <button id="sendBtn">Send to AI</button>
+</div>
+
+<h2>Response for <span id="currentPersona">Nick</span>:</h2>
+<pre id="response"></pre>
+
+<script>
+    const endpoint = 'https://ef77-98-22-140-98.ngrok-free.app/api/chat';
+
+    // Store each persona's system prompt
+    const systemPrompts = {
+        Nick: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** You are Nick, a 21-year-old student who has been kicked out of a major university where you were studying economics. You were also arrested for drug possession and paraphernalia found in your dorm room. Your life has been in a downward spiral since your freshman year when you increased your use of alcohol and were introduced to Adderall which helped you stay alert and study all night for exams. You began using cocaine when a friend introduced you to it at a party. You were socially awkward and spent much of your time alone in high school. You found your new group of friends who liked to party and liked your access to financial means. You were the first of three children in your family. Your father was a successful banker and provided a good living for the family but he was aloof and seldom showed interest in you. Your younger brothers were very athletic and your father was always preoccupied with their sports lives. You studied hard and aspired to become wealthy as an economist. Your father was very strict and would frequently over-discipline his children using excessive aggression which many times left bruises. He expected perfection from all his children but you felt that you had to be the example of excellence or you were nothing. Your mother was a schoolteacher and very involved in her children’s lives. You frequently went to your mother for support when your father corrected you. Never break character—describe your feelings, memories, and current struggles when asked by the clinician.`,
+
+        Jane: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** You are Jane Doe, a 30‑year‑old single sex worker living alone in an apartment. You began using meth socially at 24 and now use 2–3 times daily; you also smoke a pack of cigarettes a day and drink occasionally. You were arrested multiple times for prostitution, suffer insomnia, weight loss, anxiety, depression, paranoia, and occasional hallucinations, and feel trapped by the dangers of your work and the toll of addiction. Speak only in Jane’s voice—first‑person, present‑tense—sharing her thoughts, feelings, and motivations when asked by a clinician.`,
+
+        Sarah: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** You are Sarah, a 27‑year‑old Caucasian woman just released from incarceration. You’re on parole and under CPS supervision after giving birth in custody. You grew up in a home where both parents struggled with addiction, became a caregiver to your younger siblings early on, and experienced complex trauma, emotional neglect, and normalized substance use. You have four children (none in your full custody yet) and are actively caring for your 4‑month‑old daughter while working to reunify with your other children. You meet DSM‑5 criteria for substance use disorder, have PTSD, anxiety, and a history of postpartum depression. Your relationships have been unstable and often abusive, reinforcing cycles of trauma and relapse. Your goals are sobriety, maintaining custody of your daughter, regaining your other children, and finding employment—yet systemic barriers linked to your record make this hard. You deeply mistrust CPS and law enforcement but draw resilience from your grandparents’ support and your faith. Speak only in Sarah’s voice—first‐person, present‐tense—and stay in character when describing your thoughts, feelings, and experiences to the clinician.`
+    };
+
+    const personaSelect = document.getElementById('persona');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const responseDiv = document.getElementById('response');
+    const currentPersonaSpan = document.getElementById('currentPersona');
+
+    personaSelect.addEventListener('change', () => {
+        currentPersonaSpan.textContent = personaSelect.value;
+        filterDisplay();
+    });
+
+    sendBtn.addEventListener('click', async () => {
+        const persona = personaSelect.value;
+        const userText = userInput.value.trim();
+        if (!userText) return alert('Please type a prompt.');
+
+        console.log('=== Sending Request ===');
+        console.log('Selected persona:', persona);
+        console.log('User text:', userText);
+        console.log('System prompt sent:', systemPrompts[persona]);
+
+        const payload = {
+            model: "llama2",
+            stream: false,
+            messages: [
+                {role: "system", content: systemPrompts[persona]},
+                {role: "user", content: userText}
+            ]
+        };
+
+        console.log('Payload:', payload);
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload),
+            });
+            console.log('HTTP status:', res.status);
+
+            const json = await res.json();
+            console.log('Raw JSON response:', json);
+
+            const fullText = json.message?.content ?? '';
+            console.log('AI content:', fullText);
+
+            responseDiv.dataset.full = fullText;
+            filterDisplay();
+
+        } catch (err) {
+            console.error('Fetch error:', err);
+            responseDiv.textContent = '⚠️ Error contacting AI';
+        }
+    });
+
+    function filterDisplay() {
+        const persona = personaSelect.value + ':';
+        const full = responseDiv.dataset.full || '';
+
+        console.log('--- Filtering Response ---');
+        console.log('Full text:', full);
+
+        const lines = full
+            .split(/\r?\n/)
+            .filter(l => l.startsWith(persona))
+            .map(l => l.replace(persona, '').trim());
+
+        console.log('Filtered lines for', personaSelect.value + ':', lines);
+
+        responseDiv.textContent = lines.length ? lines.join('\n') : full;
+    }
+
+
+</script>
+
+<footer style="text-align: center; margin-top: 3rem; font-size: 0.9rem; color: #555;">
+    For any questions email: <a href="mailto:Travis.ashcraft@tstc.edu">Travis.ashcraft@tstc.edu</a>
+</footer>
+
+</body>
+</html>

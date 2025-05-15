@@ -1,0 +1,63 @@
+﻿/* styles.css */
+:root {
+    --tstc-red: #D21F3C;
+    --tstc-black: #000;
+    --tstc-white: #FFF;
+    --tstc-gray: #F4F4F4;
+}
+body {
+    font-family: sans-serif;
+    max-width: 600px;
+    margin: 2rem auto;
+    background: var(--tstc-white);
+    color: var(--tstc-black);
+}
+h1 {
+    text-align: center;
+    color: var(--tstc-red);
+    margin-bottom: 1rem;
+}
+label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: bold;
+    color: var(--tstc-black);
+}
+select, textarea, button {
+    font-family: inherit;
+    font-size: 1rem;
+    border: 2px solid var(--tstc-red);
+    border-radius: 4px;
+}
+select, textarea {
+    width: 100%;
+    padding: .5rem;
+    box-sizing: border-box;
+    margin-top: .25rem;
+}
+textarea {
+    height: 5rem;
+    resize: vertical;
+}
+button {
+    background: var(--tstc-red);
+    color: var(--tstc-white);
+    padding: .5rem 1rem;
+    margin-top: .5rem;
+    cursor: pointer;
+    transition: background .2s;
+}
+button:hover {
+    background: #B31B35;
+}
+pre {
+    background: var(--tstc-gray);
+    padding: 1rem;
+    white-space: pre-wrap;
+    border-left: 4px solid var(--tstc-red);
+    margin-top: 1rem;
+}
+h2 {
+    margin-top: 2rem;
+    color: var(--tstc-black);
+}
