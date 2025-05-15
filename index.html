@@ -13,6 +13,59 @@
 </head>
 <body>
 
+<div id="disclaimerModal" style="
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+">
+    <div style="
+        background: white;
+        padding: 2rem;
+        max-width: 600px;
+        color: #333;
+        border-radius: 8px;
+        font-family: sans-serif;
+    ">
+        <h2 style="margin-top: 0; color: #D21F3C;">Simulation Disclaimer</h2>
+        <p>
+            This simulation is designed as a training tool to provide you with practical experience in counseling individuals with chemical dependencies. The AI "client" you will interact with is programmed to mimic the complexities and nuances of real-world client interactions.
+        </p>
+        <p>
+            Therefore, please be aware that the AI "client" may:
+        <ul>
+            <li>Use language that reflects their lived experiences, which could include strong emotions, profanity, or descriptions of difficult situations.</li>
+            <li>Present with a variety of attitudes, beliefs, and behaviors that are common in individuals struggling with substance use disorders.</li>
+            <li>Discuss sensitive topics related to their substance use, mental health, relationships, and past experiences.</li>
+        </ul>
+        </p>
+        <p>
+            It is important to remember that this is a simulation. The AI "client" is not a real person, and its responses are generated for educational purposes. Your interactions with the AI "client" should be approached with the same professionalism, empathy, and ethical considerations you would apply to a real client.
+        </p>
+        <p>
+            The goal of this exercise is to help you develop your counseling skills in a safe and controlled environment. Your instructor will provide guidance and feedback on your interactions.
+        </p>
+        <p style="font-weight: bold;">
+            By proceeding, you acknowledge that you have read and understood this disclaimer.
+        </p>
+        <div style="text-align: right;">
+            <button id="acceptDisclaimerBtn" style="
+                background: #D21F3C;
+                color: white;
+                padding: 0.5rem 1rem;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 1rem;
+            ">OK</button>
+        </div>
+    </div>
+</div>
+
 <img src="assets/TSTCLogo-PrimaryNavy%20(1).png" alt="TSTC Logo" style="max-width: 200px; display: block; margin: 0 auto 1rem;">
 
 
@@ -53,6 +106,10 @@
 </div>
 
 <pre id="response"></pre>
+
+<button id="reportBtn" style="margin-top: 1rem; display: none;">Report an Issue</button>
+
+
 
 <script>
     const endpoint = 'https://5e5b-98-22-140-98.ngrok-free.app/api/chat';
@@ -112,6 +169,8 @@
             const fullText = json.message?.content ?? '';
             responseDiv.dataset.full = fullText;
             filterDisplay();
+            reportBtn.style.display = 'inline-block';
+
         } catch (err) {
             console.error('Fetch error:', err);
             responseDiv.textContent = '⚠️ Error contacting AI';
@@ -133,6 +192,28 @@
 
         responseDiv.textContent = lines.length ? lines.join('\n') : full;
     }
+
+    const reportBtn = document.getElementById('reportBtn');
+
+    reportBtn.addEventListener('click', () => {
+        const persona = personaSelect.value;
+        const prompt = userInput.value.trim();
+        const response = responseDiv.textContent.trim();
+
+        const subject = encodeURIComponent(`AI Issue Report - ${persona}`);
+        const body = encodeURIComponent(
+            `Persona: ${persona}\n\nUser Prompt:\n${prompt}\n\nAI Response:\n${response}`
+        );
+
+        window.location.href = `mailto:Travis.ashcraft@tstc.edu?subject=${subject}&body=${body}`;
+    });
+
+    const disclaimerModal = document.getElementById('disclaimerModal');
+    const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
+
+    acceptDisclaimerBtn.addEventListener('click', () => {
+        disclaimerModal.style.display = 'none';
+    });
 
 </script>
 
