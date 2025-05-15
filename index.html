@@ -18,6 +18,11 @@
 
 <h1>CDC AI Persona Tester</h1>
 
+<p style="text-align: center; max-width: 600px; margin: 0 auto 1rem; color: #444;">
+    This internal tool is designed for the CDC team at Texas State Technical College to create, test, and refine AI-driven case study personas for instructional use.
+</p>
+
+
 <label>
     Pick persona:
     <select id="persona">
@@ -39,6 +44,12 @@
 </div>
 
 <h2>Response for <span id="currentPersona">Nick</span>:</h2>
+
+
+<div id="loadingMessage" style="text-align: center; margin-top: 1rem; display: none; color: #D21F3C; font-weight: bold;">
+    ⏳ Thinking...
+</div>
+
 <pre id="response"></pre>
 
 <script>
@@ -58,6 +69,7 @@
     const sendBtn = document.getElementById('sendBtn');
     const responseDiv = document.getElementById('response');
     const currentPersonaSpan = document.getElementById('currentPersona');
+    const loadingMessage = document.getElementById('loadingMessage');
 
     personaSelect.addEventListener('change', () => {
         currentPersonaSpan.textContent = personaSelect.value;
@@ -69,42 +81,42 @@
         const userText = userInput.value.trim();
         if (!userText) return alert('Please type a prompt.');
 
-        console.log('=== Sending Request ===');
-        console.log('Selected persona:', persona);
-        console.log('User text:', userText);
-        console.log('System prompt sent:', systemPrompts[persona]);
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Thinking...';
+        loadingMessage.style.display = 'block';
+        responseDiv.textContent = '';
 
         const payload = {
             model: "llama2",
             stream: false,
             messages: [
-                {role: "system", content: systemPrompts[persona]},
-                {role: "user", content: userText}
+                { role: "system", content: systemPrompts[persona] },
+                { role: "user", content: userText }
             ]
         };
-
-        console.log('Payload:', payload);
 
         try {
             const res = await fetch(endpoint, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
+
             console.log('HTTP status:', res.status);
 
             const json = await res.json();
             console.log('Raw JSON response:', json);
 
             const fullText = json.message?.content ?? '';
-            console.log('AI content:', fullText);
-
             responseDiv.dataset.full = fullText;
             filterDisplay();
-
         } catch (err) {
             console.error('Fetch error:', err);
             responseDiv.textContent = '⚠️ Error contacting AI';
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send to AI';
+            loadingMessage.style.display = 'none';
         }
     });
 
@@ -112,24 +124,18 @@
         const persona = personaSelect.value + ':';
         const full = responseDiv.dataset.full || '';
 
-        console.log('--- Filtering Response ---');
-        console.log('Full text:', full);
-
         const lines = full
             .split(/\r?\n/)
             .filter(l => l.startsWith(persona))
             .map(l => l.replace(persona, '').trim());
 
-        console.log('Filtered lines for', personaSelect.value + ':', lines);
-
         responseDiv.textContent = lines.length ? lines.join('\n') : full;
     }
-
 
 </script>
 
 <footer style="text-align: center; margin-top: 3rem; font-size: 0.9rem; color: #555;">
-    For any questions email: <a href="mailto:Travis.ashcraft@tstc.edu">Travis.ashcraft@tstc.edu</a>
+    For any questions or issues please email: <a href="mailto:Travis.ashcraft@tstc.edu">Travis.ashcraft@tstc.edu</a>
 </footer>
 
 </body>
