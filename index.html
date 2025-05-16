@@ -220,28 +220,56 @@
     const userEmailInput = document.getElementById('userEmail');
     const clearPromptBtn = document.getElementById('clearPromptBtn');
 
+    // Persona select, on each change we send a transcript.
     personaSelect.addEventListener('change', () => {
-        currentPersonaSpan.textContent = personaSelect.value;
-        filterDisplay();
-        badge.textContent = personaSelect.value;
-        badge.style.background = personaSelect.value === 'Nick' ? '#ffd1d1' :
-                                 personaSelect.value === 'Jane' ? '#d1e7ff' :
-                                 '#e0d1ff';
-        if (userEmail && responseDiv.textContent.trim()) {
-            const transcript = {
-                to: userEmail,
-                persona: currentPersonaSpan.textContent,
-                prompt: userInput.value.trim(),
-                response: responseDiv.textContent.trim()
+        const previousPersona = currentPersonaSpan.textContent;
+        const newPersona = personaSelect.value;
+        currentPersonaSpan.textContent = newPersona;
+
+        // Only send transcript if history exists
+        if (userEmail && historyLog.children.length > 0) {
+            let transcriptHTML = '';
+
+            for (let li of historyLog.children) {
+                const user = li.dataset.user || 'Prompt not recorded';
+                const aiMatch = li.textContent.match(/🧠 .*?: "(.*)"/s);
+                const ai = aiMatch ? aiMatch[1] : 'Response not recorded';
+
+                transcriptHTML += `
+                <div style="margin-bottom: 1rem;">
+                    <strong>User:</strong> ${user}<br>
+                    <strong>AI:</strong>
+                    <div style="background: #f9f9f9; padding: 1rem; border-left: 4px solid #D21F3C; white-space: pre-wrap;">
+                        ${ai}
+                    </div>
+                </div>`;
+            }
+
+            const emailData = {
+                email: userEmail,
+                persona: previousPersona,
+                transcript: transcriptHTML
             };
 
-            fetch('https://YOUR_BACKEND/api/sendTranscript', {
+            fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(transcript)
+                body: JSON.stringify(emailData)
+            }).then(() => {
+                // ✅ Only clear after email is successfully sent
+                historyLog.innerHTML = '';
+            }).catch((err) => {
+                console.error('Transcript email failed:', err);
+                // Optionally still clear it, or preserve for retry
             });
         }
+
+        // Reset UI
+        userInput.value = '';
+        responseDiv.textContent = '';
+        reportBtn.style.display = 'none';
     });
+
 
     sendBtn.addEventListener('click', async () => {
         const persona = personaSelect.value;
@@ -280,6 +308,7 @@
             filterDisplay();
             const entry = document.createElement('li');
             entry.textContent = `🧠 ${persona}: "${fullText}"`;
+            entry.dataset.user = userText; // 🧠 Save prompt for later
             historyLog.appendChild(entry);
             reportBtn.style.display = 'inline-block';
 
