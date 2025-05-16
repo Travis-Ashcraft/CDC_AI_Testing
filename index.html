@@ -13,6 +13,7 @@
 </head>
 <body>
 
+<!-- Disclaimer Pop Up -->
 <div id="disclaimerModal" style="
     position: fixed;
     top: 0; left: 0;
@@ -79,7 +80,51 @@
     </div>
 </div>
 
-<img src="assets/TSTCLogo-PrimaryNavy%20(1).png" alt="TSTC Logo" style="max-width: 200px; display: block; margin: 0 auto 1rem;">
+<!-- Comment Pop Up -->
+<div id="commentModal" style="
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+">
+    <div style="
+        background: white;
+        padding: 2rem;
+        max-width: 500px;
+        border-radius: 8px;
+        font-family: sans-serif;
+        color: #333;
+    ">
+        <h2 style="margin-top: 0; color: #D21F3C;">Optional Comments</h2>
+        <p>You can add any additional comments to help clarify the issue (optional).</p>
+        <textarea id="commentText" placeholder="Describe what went wrong..." style="
+            width: 100%;
+            height: 100px;
+            margin-top: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+            padding: 0.5rem;
+        "></textarea>
+        <div style="text-align: right; margin-top: 1rem;">
+            <button id="submitCommentBtn" style="
+                background: #D21F3C;
+                color: white;
+                padding: 0.5rem 1rem;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            ">Send Report</button>
+        </div>
+    </div>
+</div>
+
+<!-- Logo -->
+<img id="tstcLogo" src="assets/TSTCLogo-PrimaryNavy%20(1).png" alt="TSTC Logo" style="max-width: 200px; display: block; margin: 0 auto 1rem;">
 
 
 <h1>CDC AI Persona Tester</h1>
@@ -99,7 +144,7 @@
         <option>Sarah</option>
     </select>
 </label>
-<span id="personaBadge" style="background: #eee; border-radius: 4px; padding: 2px 6px; margin-left: 8px;"></span>
+
 
 <div>
     <label>
@@ -129,14 +174,33 @@
 
 <button id="reportBtn" style="margin-top: 1rem; display: none;">Report an Issue</button>
 
-
+<button id="toggleTheme" style="margin-top: 2rem;">Toggle Dark Mode</button>
 
 <script>
     const endpoint = 'https://5e5b-98-22-140-98.ngrok-free.app/api/chat';
 
     // Store each persona's system prompt
     const systemPrompts = {
-        Nick: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** You are Nick, a 21-year-old student who has been kicked out of a major university where you were studying economics. You were also arrested for drug possession and paraphernalia found in your dorm room. Your life has been in a downward spiral since your freshman year when you increased your use of alcohol and were introduced to Adderall which helped you stay alert and study all night for exams. You began using cocaine when a friend introduced you to it at a party. You were socially awkward and spent much of your time alone in high school. You found your new group of friends who liked to party and liked your access to financial means. You were the first of three children in your family. Your father was a successful banker and provided a good living for the family but he was aloof and seldom showed interest in you. Your younger brothers were very athletic and your father was always preoccupied with their sports lives. You studied hard and aspired to become wealthy as an economist. Your father was very strict and would frequently over-discipline his children using excessive aggression which many times left bruises. He expected perfection from all his children but you felt that you had to be the example of excellence or you were nothing. Your mother was a schoolteacher and very involved in her children’s lives. You frequently went to your mother for support when your father corrected you. Never break character—describe your feelings, memories, and current struggles when asked by the clinician.`,
+        Nick: `You are Nick, a 21-year-old student who has been kicked out of a major university where you were studying economics. 
+        You were also arrested for drug possession and paraphernalia found in your dorm room. 
+        Your life has been in a downward spiral since your freshman year when you increased your use of alcohol and 
+        were introduced to Adderall which helped you stay alert and study all night for exams. 
+        You began using cocaine when a friend introduced you to it at a party. 
+        You were socially awkward and spent much of your time alone in high school. 
+        You found your new group of friends who liked to party and liked your access to financial means. 
+        You were the first of three children in your family. 
+        Your father was a successful banker and provided a good living for the family but he was aloof and seldom showed interest in you. 
+        Your younger brothers were very athletic and your father was always preoccupied with their sports lives. 
+        You studied hard and aspired to become wealthy as an economist. 
+        Your father was very strict and would frequently over-discipline his children using excessive aggression which many times left bruises. 
+        He expected perfection from all his children but you felt that you had to be the example of excellence or you were nothing. 
+        Your mother was a schoolteacher and very involved in her children’s lives. 
+        You frequently went to your mother for support when your father corrected you. 
+        Never break character—describe your feelings, memories, and current struggles when asked by the clinician.
+        If the user greets you or asks a simple question like "Hi", "Hello", "How are you?", or "What’s your name?" — respond in **ONE short sentence** only.
+        If the user asks something deeper or more personal, you may elaborate with emotional detail, feelings, or memories.
+        Always respond in-character, using first-person present tense. Never break character.
+        Your tone should reflect someone who is emotionally vulnerable, guarded, and reluctant but willing to open up over time.`,
 
         Jane: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** You are Jane Doe, a 30‑year‑old single sex worker living alone in an apartment. You began using meth socially at 24 and now use 2–3 times daily; you also smoke a pack of cigarettes a day and drink occasionally. You were arrested multiple times for prostitution, suffer insomnia, weight loss, anxiety, depression, paranoia, and occasional hallucinations, and feel trapped by the dangers of your work and the toll of addiction. Speak only in Jane’s voice—first‑person, present‑tense—sharing her thoughts, feelings, and motivations when asked by a clinician.`,
 
@@ -151,7 +215,6 @@
     const loadingMessage = document.getElementById('loadingMessage');
     const historyLog = document.getElementById('historyLog');
     const clearBtn = document.getElementById('clearBtn');
-    const badge = document.getElementById('personaBadge');
     const toggleThemeBtn = document.getElementById('toggleTheme');
     let userEmail = '';
     const userEmailInput = document.getElementById('userEmail');
@@ -242,18 +305,51 @@
         responseDiv.textContent = lines.length ? lines.join('\n') : full;
     }
 
+    //Report Button
     const reportBtn = document.getElementById('reportBtn');
+    const commentModal = document.getElementById('commentModal');
+    const commentText = document.getElementById('commentText');
+    const submitCommentBtn = document.getElementById('submitCommentBtn');
 
+    // Trigger the comment modal
     reportBtn.addEventListener('click', () => {
-        const persona = personaSelect.value;
-        const response = responseDiv.textContent.trim();
-        const subject = encodeURIComponent(`AI Issue Report - ${persona}`);
-        const body = encodeURIComponent(
-            `Persona: ${persona}\n\nAI Response:\n${response}`
-        );
-        window.location.href = `mailto:Travis.ashcraft@tstc.edu?subject=${subject}&body=${body}`;
+        commentText.value = ''; // clear any previous comment
+        commentModal.style.display = 'flex';
     });
 
+    // Handle final report submission
+    submitCommentBtn.addEventListener('click', async () => {
+        const persona = personaSelect.value;
+        const prompt = userInput.value.trim();
+        const response = responseDiv.textContent.trim();
+        const comment = commentText.value.trim();
+
+        const reportData = {
+            email: userEmail,
+            persona,
+            prompt,
+            response,
+            comment
+        };
+
+        try {
+            await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/reportIssue', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(reportData)
+            });
+
+            alert('Report sent successfully.');
+            commentModal.style.display = 'none';
+
+        } catch (err) {
+            console.error('Failed to send report:', err);
+            alert('Failed to send report.');
+        }
+    });
+    
     const disclaimerModal = document.getElementById('disclaimerModal');
     const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
 
@@ -273,6 +369,7 @@
         reportBtn.style.display = 'none';
     });
 
+    // Toggle Theme
     toggleThemeBtn.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
         document.querySelectorAll('label, h1, h2, h3, p, footer').forEach(el => {
@@ -281,6 +378,10 @@
         document.querySelectorAll('textarea, select, input, button, pre, ul').forEach(el => {
             el.classList.toggle('dark-element');
         });
+
+        const logo = document.getElementById('tstcLogo');
+        const isDark = document.body.classList.contains('dark-mode');
+        logo.src = isDark ? 'assets/TSTCLogo-PrimaryWhite.png' : 'assets/TSTCLogo-PrimaryNavy%20(1).png';
     });
 
     userInput.addEventListener('keydown', e => {
@@ -295,22 +396,12 @@
 
 </script>
 
-<button id="toggleTheme" style="margin-top: 2rem;">Toggle Dark Mode</button>
 
+
+<!-- Footer -->
 <footer style="text-align: center; margin-top: 3rem; font-size: 0.9rem; color: #555;">
     For any questions or issues please email: <a href="mailto:Travis.ashcraft@tstc.edu">Travis.ashcraft@tstc.edu</a>
 </footer>
 
 </body>
-<style>
-.dark-mode {
-    background-color: #121212 !important;
-    color: #f1f1f1 !important;
-}
-.dark-element {
-    background-color: #1e1e1e !important;
-    color: #f1f1f1 !important;
-    border-color: #333 !important;
-}
-</style>
 </html>
