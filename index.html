@@ -220,57 +220,93 @@
     const userEmailInput = document.getElementById('userEmail');
     const clearPromptBtn = document.getElementById('clearPromptBtn');
 
+    let transcriptEntries = [];
+
+
+
+    function filterDisplay() {
+        const persona = personaSelect.value + ':';
+        const full = responseDiv.dataset.full || '';
+
+        const lines = full
+            .split(/\r?\n/)
+            .filter(l => l.startsWith(persona))
+            .map(l => l.replace(persona, '').trim());
+
+        responseDiv.textContent = lines.length ? lines.join('\n') : full;
+    }
+
+    //Report Button
+    const reportBtn = document.getElementById('reportBtn');
+    const commentModal = document.getElementById('commentModal');
+    const commentText = document.getElementById('commentText');
+    const submitCommentBtn = document.getElementById('submitCommentBtn');
+    const disclaimerModal = document.getElementById('disclaimerModal');
+    const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
+
     // Persona select, on each change we send a transcript.
-    personaSelect.addEventListener('change', () => {
+    personaSelect.addEventListener('change', async () => {
         const previousPersona = currentPersonaSpan.textContent;
         const newPersona = personaSelect.value;
         currentPersonaSpan.textContent = newPersona;
 
-        // Only send transcript if history exists
-        if (userEmail && historyLog.children.length > 0) {
-            let transcriptHTML = '';
+        // 📨 Send previous transcript if there are entries
+        if (userEmail && transcriptEntries.length > 0) {
+            const transcriptHTML = transcriptEntries.map(pair => `
+            <div style="margin-bottom: 1rem;">
+                <strong>User:</strong> ${pair.user}<br>
+                <strong>AI:</strong>
+                <div style="background: #f9f9f9; padding: 1rem; border-left: 4px solid #D21F3C; white-space: pre-wrap;">
+                    ${pair.ai}
+                </div>
+            </div>
+        `).join('');
 
-            for (let li of historyLog.children) {
-                const user = li.dataset.user || 'Prompt not recorded';
-                const aiMatch = li.textContent.match(/🧠 .*?: "(.*)"/s);
-                const ai = aiMatch ? aiMatch[1] : 'Response not recorded';
-
-                transcriptHTML += `
-                <div style="margin-bottom: 1rem;">
-                    <strong>User:</strong> ${user}<br>
-                    <strong>AI:</strong>
-                    <div style="background: #f9f9f9; padding: 1rem; border-left: 4px solid #D21F3C; white-space: pre-wrap;">
-                        ${ai}
-                    </div>
-                </div>`;
-            }
-
-            const emailData = {
-                email: userEmail,
-                persona: previousPersona,
-                transcript: transcriptHTML
-            };
-
-            fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(emailData)
-            }).then(() => {
-                // ✅ Only clear after email is successfully sent
+            try {
+                await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: userEmail,
+                        persona: previousPersona,
+                        transcript: transcriptHTML
+                    })
+                });
+                console.log(`📨 Transcript sent for ${previousPersona}`);
                 historyLog.innerHTML = '';
-            }).catch((err) => {
-                console.error('Transcript email failed:', err);
-                // Optionally still clear it, or preserve for retry
-            });
+                transcriptEntries = [];
+            } catch (err) {
+                console.error('❌ Transcript email failed:', err);
+            }
         }
 
-        // Reset UI
+        // 💾 Start a new session with formatted AI_Name_YYYY-MM-DDTHH-mm
+        const now = new Date();
+        const isoDate = now.toISOString().slice(0, 16).replace(':', '-'); // 👈 results in 2025-05-16T18-34
+        const sessionLabel = `${newPersona}_${isoDate}`;
+
+        try {
+            const res = await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/startSession', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: userEmail,
+                    persona: sessionLabel
+                })
+            });
+            const data = await res.json();
+            window.sessionId = data.sessionId;
+            console.log('🔄 New session started:', sessionLabel, '| ID:', window.sessionId);
+        } catch (err) {
+            console.error('❌ Failed to start new session:', err);
+        }
+
+        // 🔄 Reset UI
         userInput.value = '';
         responseDiv.textContent = '';
         reportBtn.style.display = 'none';
     });
-
-
+    
     sendBtn.addEventListener('click', async () => {
         const persona = personaSelect.value;
         const userText = userInput.value.trim();
@@ -309,6 +345,18 @@
             const entry = document.createElement('li');
             entry.textContent = `🧠 ${persona}: "${fullText}"`;
             entry.dataset.user = userText; // 🧠 Save prompt for later
+            transcriptEntries.push({ user: userText, ai: fullText });
+            if (window.sessionId) {
+                fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/saveTranscript', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: window.sessionId,
+                        prompt: userText,
+                        response: fullText
+                    })
+                }).catch(err => console.error('❌ Failed to save transcript:', err));
+            }
             historyLog.appendChild(entry);
             reportBtn.style.display = 'inline-block';
 
@@ -321,24 +369,6 @@
             loadingMessage.style.display = 'none';
         }
     });
-
-    function filterDisplay() {
-        const persona = personaSelect.value + ':';
-        const full = responseDiv.dataset.full || '';
-
-        const lines = full
-            .split(/\r?\n/)
-            .filter(l => l.startsWith(persona))
-            .map(l => l.replace(persona, '').trim());
-
-        responseDiv.textContent = lines.length ? lines.join('\n') : full;
-    }
-
-    //Report Button
-    const reportBtn = document.getElementById('reportBtn');
-    const commentModal = document.getElementById('commentModal');
-    const commentText = document.getElementById('commentText');
-    const submitCommentBtn = document.getElementById('submitCommentBtn');
 
     // Trigger the comment modal
     reportBtn.addEventListener('click', () => {
@@ -379,19 +409,33 @@
         }
     });
     
-    const disclaimerModal = document.getElementById('disclaimerModal');
-    const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
-
-    acceptDisclaimerBtn.addEventListener('click', () => {
+    acceptDisclaimerBtn.addEventListener('click', async () => {
         const emailValue = userEmailInput.value.trim();
         if (!emailValue || !emailValue.endsWith('@tstc.edu')) {
             alert('Please enter a valid TSTC email address.');
             return;
         }
-        userEmail = emailValue;
+        userEmail = emailValue.toLowerCase();
+        
+        // 🧠 Start a session with the current persona
+        const persona = personaSelect.value;
+        try {
+            const res = await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/startSession', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail, persona })
+            });
+
+            const data = await res.json();
+            window.sessionId = data.sessionId; // Store it globally
+            console.log('✅ Session started. ID:', window.sessionId);
+        } catch (err) {
+            console.error('❌ Failed to start session:', err);
+        }
+
         disclaimerModal.style.display = 'none';
     });
-
+    
     clearBtn.addEventListener('click', () => {
         userInput.value = '';
         responseDiv.textContent = '';
@@ -422,6 +466,54 @@
     clearPromptBtn.addEventListener('click', () => {
         userInput.value = '';
     });
+
+    // In case of crash/close send out the transcript
+    window.addEventListener('beforeunload', () => {
+        if (userEmail && transcriptEntries.length > 0) {
+            const transcriptHTML = transcriptEntries.map(pair => `
+            <div style="margin-bottom: 1rem;">
+                <strong>User:</strong> ${pair.user}<br>
+                <strong>AI:</strong>
+                <div style="background: #f9f9f9; padding: 1rem; border-left: 4px solid #D21F3C; white-space: pre-wrap;">
+                    ${pair.ai}
+                </div>
+            </div>
+        `).join('');
+
+            // Use a Blob for sendBeacon
+            const blob = new Blob([JSON.stringify({
+                email: userEmail,
+                persona: personaSelect.value,
+                transcript: transcriptHTML
+            })], { type: 'application/json' });
+
+            const success = navigator.sendBeacon(
+                'https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript',
+                blob
+            );
+
+            if (!success) {
+                // Fallback: store in localStorage and try again later
+                localStorage.setItem('unsentTranscript', blob);
+            }
+        }
+    });
+
+    window.addEventListener('load', () => {
+        const saved = localStorage.getItem('unsentTranscript');
+        if (saved) {
+            fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: saved
+            }).then(() => {
+                localStorage.removeItem('unsentTranscript');
+            }).catch(() => {
+                console.warn('Retrying failed transcript later');
+            });
+        }
+    });
+
 
 </script>
 
