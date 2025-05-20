@@ -177,7 +177,7 @@
 <button id="toggleTheme" style="margin-top: 2rem;">Toggle Dark Mode</button>
 
 <script>
-    const endpoint = 'https://5e5b-98-22-140-98.ngrok-free.app/api/chat';
+    const endpoint = 'https://9fd3-98-22-140-98.ngrok-free.app/api/chat';
 
     // Store each persona's system prompt
     const systemPrompts = {
@@ -263,7 +263,7 @@
         `).join('');
 
             try {
-                await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+                await fetch('https://9fd3-98-22-140-98.ngrok-free.app/api/sendTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -286,7 +286,7 @@
         const sessionLabel = `${newPersona}_${isoDate}`;
 
         try {
-            const res = await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/startSession', {
+            const res = await fetch('https://9fd3-98-22-140-98.ngrok-free.app/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -347,7 +347,7 @@
             entry.dataset.user = userText; // 🧠 Save prompt for later
             transcriptEntries.push({ user: userText, ai: fullText });
             if (window.sessionId) {
-                fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/saveTranscript', {
+                fetch('https://9fd3-98-22-140-98.ngrok-free.app/api/saveTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -392,7 +392,7 @@
         };
 
         try {
-            await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/reportIssue', {
+            await fetch('https://9fd3-98-22-140-98.ngrok-free.app/api/reportIssue', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -420,7 +420,7 @@
         // 🧠 Start a session with the current persona
         const persona = personaSelect.value;
         try {
-            const res = await fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/startSession', {
+            const res = await fetch('https://9fd3-98-22-140-98.ngrok-free.app/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail, persona })
@@ -488,7 +488,7 @@
             })], { type: 'application/json' });
 
             const success = navigator.sendBeacon(
-                'https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript',
+                'https://9fd3-98-22-140-98.ngrok-free.app/api/sendTranscript',
                 blob
             );
 
@@ -502,7 +502,7 @@
     window.addEventListener('load', () => {
         const saved = localStorage.getItem('unsentTranscript');
         if (saved) {
-            fetch('https://5e5b-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+            fetch('https://9fd3-98-22-140-98.ngrok-free.app/api/sendTranscript', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: saved
