@@ -255,6 +255,40 @@
     }
 
     /**
+     * Pause for the given milliseconds.
+     */
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /**
+     * Break the AI’s raw text into alternating
+     * action‐tokens and plain‐text segments.
+     */
+    function segmentize(text) {
+        const re = /(\*[^*]+\*)/g;
+        return text
+            .split(re)                 // split out the *…* parts
+            .filter(p => p !== "")     // drop empty
+            .map(p => p.match(re)
+                ? { type: "action", content: p }
+                : { type: "text",   content: p }
+            );
+    }
+
+
+    /**
+     * Remove any “*action*” tokens, collapse
+     * extra spaces, and trim.
+     */
+    function stripActionTokens(text) {
+        return text
+            .replace(/\*[^*]+\*/g, "")      // strip *sigh*, *lifts head*, etc.
+            .replace(/\s{2,}/g, " ")        // collapse any double-spaces
+            .trim();                        // trim leading/trailing
+    }
+
+    /**
      * Split text into sentences (simple regex; adjust as needed).
      */
     function splitSentences(text) {
@@ -301,18 +335,35 @@
     }
 
     /**
-     * Splits the full text, then plays each chunk in order.
+     * Speak the AI’s response, inserting a dynamic pause
+     * for each action token based on its length.
      */
     async function speak(text, voiceId = DEFAULT_VOICE) {
-        speakingIndicator.style.display = 'block';
-        const sentences = splitSentences(text);
-        console.log("✂️ split into", sentences.length, "chunk(s):", sentences);
-        for (const sentence of sentences) {
-            // wait for each chunk to finish before moving on
-            await playChunk(sentence, voiceId);
+        speakingIndicator.style.display = "block";
+        const segments = segmentize(text);
+        console.log("🔀 segments:", segments);
+
+        for (const seg of segments) {
+            if (seg.type === "action") {
+                // remove the surrounding asterisks
+                const actionText = seg.content.slice(1, -1);
+                // e.g. 100ms per character
+                const pauseMs = actionText.length * 100;
+                console.log(`⏸ pausing ${pauseMs}ms for ${seg.content}`);
+                await sleep(pauseMs);
+
+            } else {
+                // strip any leftover *…* just in case, then chunk
+                const clean = seg.content.replace(/\*[^*]+\*/g, "");
+                const sentences = splitSentences(clean);
+                for (const sentence of sentences) {
+                    await playChunk(sentence, voiceId);
+                }
+            }
         }
-        console.log("🎉 All chunks played!");
-        speakingIndicator.style.display = 'none';
+
+        speakingIndicator.style.display = "none";
+        console.log("🎉 speak complete");
     }
     
     
