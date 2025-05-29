@@ -184,9 +184,9 @@
 <button id="toggleTheme" style="margin-top: 2rem;">Toggle Dark Mode</button>
 
 <script>
-    const endpoint = 'https://9535-98-22-140-98.ngrok-free.app/api/chat';
+    const endpoint = 'https://8942-98-22-140-98.ngrok-free.app/api/chat';
     const DEFAULT_VOICE = "larynx:cmu_bdl-glow_tts";
-    const TTS_ENDPOINT = "https://9535-98-22-140-98.ngrok-free.app/api/synthesize";
+    const TTS_ENDPOINT = "https://8942-98-22-140-98.ngrok-free.app/api/synthesize";
     
     const personaVoices = {
         Nick:  "larynx:cmu_bdl-glow_tts",
@@ -397,7 +397,7 @@
         `).join('');
 
             try {
-                await fetch('https://9535-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+                await fetch('https://8942-98-22-140-98.ngrok-free.app/api/sendTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -420,7 +420,7 @@
         const sessionLabel = `${newPersona}_${isoDate}`;
 
         try {
-            const res = await fetch('https://9535-98-22-140-98.ngrok-free.app/api/startSession', {
+            const res = await fetch('https://8942-98-22-140-98.ngrok-free.app/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -487,7 +487,7 @@
             entry.dataset.user = userText; // 🧠 Save prompt for later
             transcriptEntries.push({ user: userText, ai: fullText });
             if (window.sessionId) {
-                fetch('https://9535-98-22-140-98.ngrok-free.app/api/saveTranscript', {
+                fetch('https://8942-98-22-140-98.ngrok-free.app/api/saveTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -532,7 +532,7 @@
         };
 
         try {
-            await fetch('https://9535-98-22-140-98.ngrok-free.app/api/reportIssue', {
+            await fetch('https://8942-98-22-140-98.ngrok-free.app/api/reportIssue', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -560,7 +560,7 @@
         // 🧠 Start a session with the current persona
         const persona = personaSelect.value;
         try {
-            const res = await fetch('https://9535-98-22-140-98.ngrok-free.app/api/startSession', {
+            const res = await fetch('https://8942-98-22-140-98.ngrok-free.app/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail, persona })
@@ -628,7 +628,7 @@
             })], { type: 'application/json' });
 
             const success = navigator.sendBeacon(
-                'https://9535-98-22-140-98.ngrok-free.app/api/sendTranscript',
+                'https://8942-98-22-140-98.ngrok-free.app/api/sendTranscript',
                 blob
             );
 
@@ -642,7 +642,7 @@
     window.addEventListener('load', () => {
         const saved = localStorage.getItem('unsentTranscript');
         if (saved) {
-            fetch('https://9535-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+            fetch('https://8942-98-22-140-98.ngrok-free.app/api/sendTranscript', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: saved
