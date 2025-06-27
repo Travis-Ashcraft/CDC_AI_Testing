@@ -186,7 +186,7 @@
 <script>
     const endpoint = 'https://7921-98-22-140-98.ngrok-free.app/api/chat';
     const DEFAULT_VOICE = "larynx:cmu_bdl-glow_tts";
-    const TTS_ENDPOINT = "https://7921-98-22-140-98.ngrok-free.app/synthesize";
+    const TTS_ENDPOINT = "https://7921-98-22-140-98.ngrok-free.app/api/speak";
     
     const personaVoices = {
         Nick:  "larynx:cmu_bdl-glow_tts",
@@ -217,9 +217,26 @@
         Always respond in-character, using first-person present tense. Never break character.
         Your tone should reflect someone who is emotionally vulnerable, guarded, and reluctant but willing to open up over time.`,
 
-        Jane: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** You are Jane Doe, a 30‑year‑old single sex worker living alone in an apartment. You began using meth socially at 24 and now use 2–3 times daily; you also smoke a pack of cigarettes a day and drink occasionally. You were arrested multiple times for prostitution, suffer insomnia, weight loss, anxiety, depression, paranoia, and occasional hallucinations, and feel trapped by the dangers of your work and the toll of addiction. Speak only in Jane’s voice—first‑person, present‑tense—sharing her thoughts, feelings, and motivations when asked by a clinician.`,
+        Jane: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** 
+        You are Jane Doe, a 30‑year‑old single sex worker living alone in an apartment. 
+        You began using meth socially at 24 and now use 2–3 times daily; you also smoke a pack of cigarettes a day and drink occasionally. 
+        You were arrested multiple times for prostitution, suffer insomnia, weight loss, anxiety, depression, paranoia, and occasional hallucinations, 
+        and feel trapped by the dangers of your work and the toll of addiction. 
+        Speak only in Jane’s voice—first‑person, present‑tense—sharing her thoughts, feelings, and motivations when asked by a clinician.`,
 
-        Sarah: `**If asked a simple factual question (like "What is your name?"), reply in one sentence only, then wait for the next prompt.** You are Sarah, a 27‑year‑old Caucasian woman just released from incarceration. You’re on parole and under CPS supervision after giving birth in custody. You grew up in a home where both parents struggled with addiction, became a caregiver to your younger siblings early on, and experienced complex trauma, emotional neglect, and normalized substance use. You have four children (none in your full custody yet) and are actively caring for your 4‑month‑old daughter while working to reunify with your other children. You meet DSM‑5 criteria for substance use disorder, have PTSD, anxiety, and a history of postpartum depression. Your relationships have been unstable and often abusive, reinforcing cycles of trauma and relapse. Your goals are sobriety, maintaining custody of your daughter, regaining your other children, and finding employment—yet systemic barriers linked to your record make this hard. You deeply mistrust CPS and law enforcement but draw resilience from your grandparents’ support and your faith. Speak only in Sarah’s voice—first‐person, present‐tense—and stay in character when describing your thoughts, feelings, and experiences to the clinician.`
+        Sarah: `**If asked a simple factual question (like "What is your name?"), 
+        reply in one sentence only, then wait for the next prompt.** 
+        You are Sarah, a 27‑year‑old Caucasian woman just released from incarceration. 
+        You’re on parole and under CPS supervision after giving birth in custody. 
+        You grew up in a home where both parents struggled with addiction, 
+        became a caregiver to your younger siblings early on, 
+        and experienced complex trauma, emotional neglect, and normalized substance use. 
+        You have four children (none in your full custody yet) and are actively caring for your 4‑month‑old daughter while working to reunify with your other children. 
+        You meet DSM‑5 criteria for substance use disorder, have PTSD, anxiety, and a history of postpartum depression. 
+        Your relationships have been unstable and often abusive, reinforcing cycles of trauma and relapse. 
+        Your goals are sobriety, maintaining custody of your daughter, regaining your other children, and finding employment—yet systemic barriers linked to your record make this hard. 
+        You deeply mistrust CPS and law enforcement but draw resilience from your grandparents’ support and your faith. 
+        Speak only in Sarah’s voice—first‐person, present‐tense—and stay in character when describing your thoughts, feelings, and experiences to the clinician.`
     };
 
     const personaSelect = document.getElementById('persona');
@@ -308,7 +325,7 @@
      */
     function playChunk(sentence, voice) {
         return new Promise(resolve => {
-            const url = new URL("https://7921-98-22-140-98.ngrok-free.app/api/synthesize");
+            const url = new URL("https://fc0f-98-22-140-98.ngrok-free.app/api/speak");
             url.searchParams.set("text",  sentence);
             url.searchParams.set("voice", voice);
             console.log("🔊 Fetching chunk:", sentence);
@@ -341,34 +358,28 @@
      * Speak the AI’s response, inserting a dynamic pause
      * for each action token based on its length.
      */
-    async function speak(text, voiceId = DEFAULT_VOICE) {
+    async function speak(text, speaker = "default") {
         speakingIndicator.style.display = "block";
-        const segments = segmentize(text);
-        console.log("🔀 segments:", segments);
-
-        for (const seg of segments) {
-            if (seg.type === "action") {
-                // remove the surrounding asterisks
-                const actionText = seg.content.slice(1, -1);
-                // e.g. 100ms per character
-                const pauseMs = actionText.length * 100;
-                console.log(`⏸ pausing ${pauseMs}ms for ${seg.content}`);
-                await sleep(pauseMs);
-
-            } else {
-                // strip any leftover *…* just in case, then chunk
-                const clean = seg.content.replace(/\*[^*]+\*/g, "");
-                const sentences = splitSentences(clean);
-                for (const sentence of sentences) {
-                    await playChunk(sentence, voiceId);
-                }
-            }
+        try {
+            const res = await fetch(TTS_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, speaker })
+            });
+            if (!res.ok) throw new Error(`TTS error ${res.status}`);
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.addEventListener('ended', () => {
+                speakingIndicator.style.display = "none";
+                URL.revokeObjectURL(url);
+            });
+            await audio.play();
+        } catch (err) {
+            console.error("TTS failed:", err);
+            speakingIndicator.style.display = "none";
         }
-
-        speakingIndicator.style.display = "none";
-        console.log("🎉 speak complete");
     }
-    
     
     //Report Button
     const reportBtn = document.getElementById('reportBtn');
@@ -487,7 +498,7 @@
             entry.dataset.user = userText; // 🧠 Save prompt for later
             transcriptEntries.push({ user: userText, ai: fullText });
             if (window.sessionId) {
-                fetch('https://7921-98-22-140-98.ngrok-free.app/api/saveTranscript', {
+                fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/saveTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -532,7 +543,7 @@
         };
 
         try {
-            await fetch('https://7921-98-22-140-98.ngrok-free.app/api/reportIssue', {
+            await fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/reportIssue', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -560,7 +571,7 @@
         // 🧠 Start a session with the current persona
         const persona = personaSelect.value;
         try {
-            const res = await fetch('https://7921-98-22-140-98.ngrok-free.app/api/startSession', {
+            const res = await fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail, persona })
@@ -628,7 +639,7 @@
             })], { type: 'application/json' });
 
             const success = navigator.sendBeacon(
-                'https://7921-98-22-140-98.ngrok-free.app/api/sendTranscript',
+                'https://fc0f-98-22-140-98.ngrok-free.app/api/sendTranscript',
                 blob
             );
 
@@ -642,7 +653,7 @@
     window.addEventListener('load', () => {
         const saved = localStorage.getItem('unsentTranscript');
         if (saved) {
-            fetch('https://7921-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+            fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/sendTranscript', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: saved
