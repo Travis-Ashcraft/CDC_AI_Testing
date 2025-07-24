@@ -184,9 +184,9 @@
 <button id="toggleTheme" style="margin-top: 2rem;">Toggle Dark Mode</button>
 
 <script>
-    const endpoint = 'https://fc0f-98-22-140-98.ngrok-free.app/api/chat';
+    const endpoint = 'https://5e9719c04856.ngrok-free.app/api/chat';
     const DEFAULT_VOICE = "larynx:cmu_bdl-glow_tts";
-    const TTS_ENDPOINT = "https://fc0f-98-22-140-98.ngrok-free.app/api/speak";
+    const TTS_ENDPOINT = "https://5e9719c04856.ngrok-free.app/api/speak";
     
     const personaVoices = {
         Nick:  "larynx:cmu_bdl-glow_tts",
@@ -325,7 +325,7 @@
      */
     function playChunk(sentence, voice) {
         return new Promise(resolve => {
-            const url = new URL("https://fc0f-98-22-140-98.ngrok-free.app/api/speak");
+            const url = new URL("https://5e9719c04856.ngrok-free.app/api/speak");
             url.searchParams.set("text",  sentence);
             url.searchParams.set("voice", voice);
             console.log("🔊 Fetching chunk:", sentence);
@@ -498,7 +498,7 @@
             entry.dataset.user = userText; // 🧠 Save prompt for later
             transcriptEntries.push({ user: userText, ai: fullText });
             if (window.sessionId) {
-                fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/saveTranscript', {
+                fetch('https://5e9719c04856.ngrok-free.app/api/saveTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -543,7 +543,7 @@
         };
 
         try {
-            await fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/reportIssue', {
+            await fetch('https://5e9719c04856.ngrok-free.app/api/reportIssue', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -571,7 +571,7 @@
         // 🧠 Start a session with the current persona
         const persona = personaSelect.value;
         try {
-            const res = await fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/startSession', {
+            const res = await fetch('https://5e9719c04856.ngrok-free.app/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail, persona })
@@ -639,7 +639,7 @@
             })], { type: 'application/json' });
 
             const success = navigator.sendBeacon(
-                'https://fc0f-98-22-140-98.ngrok-free.app/api/sendTranscript',
+                'https://5e9719c04856.ngrok-free.app/api/sendTranscript',
                 blob
             );
 
@@ -653,7 +653,7 @@
     window.addEventListener('load', () => {
         const saved = localStorage.getItem('unsentTranscript');
         if (saved) {
-            fetch('https://fc0f-98-22-140-98.ngrok-free.app/api/sendTranscript', {
+            fetch('https://5e9719c04856.ngrok-free.app/api/sendTranscript', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: saved
