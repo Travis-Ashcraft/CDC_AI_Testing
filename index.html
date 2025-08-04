@@ -184,9 +184,9 @@
 <button id="toggleTheme" style="margin-top: 2rem;">Toggle Dark Mode</button>
 
 <script>
-    const endpoint = 'https://5dd65c12cd2a.ngrok-free.app/tstc/api/chat';
+    const endpoint = 'https://92c2281d08a2.ngrok-free.app/tstc/api/chat';
     const DEFAULT_VOICE = "larynx:cmu_bdl-glow_tts";
-    const TTS_ENDPOINT = "https://5dd65c12cd2a.ngrok-free.app/tstc/api/speak";
+    const TTS_ENDPOINT = "https://92c2281d08a2.ngrok-free.app/tstc/api/speak";
     
     const personaVoices = {
         Nick:  "larynx:cmu_bdl-glow_tts",
@@ -252,6 +252,9 @@
     const clearPromptBtn = document.getElementById('clearPromptBtn');
     const speakingIndicator = document.getElementById('speakingIndicator');
     
+    //Data Tracking
+    const userText = userInput.value.trim();
+    const fullText = json.message?.content ?? '';
     let userEmail = '';
     let transcriptEntries = [];
 
@@ -325,7 +328,7 @@
      */
     function playChunk(sentence, voice) {
         return new Promise(resolve => {
-            const url = new URL("https://5dd65c12cd2a.ngrok-free.app/tstc/api/speak");
+            const url = new URL("https://92c2281d08a2.ngrok-free.app/tstc/api/speak");
             url.searchParams.set("text",  sentence);
             url.searchParams.set("voice", voice);
             console.log("🔊 Fetching chunk:", sentence);
@@ -384,7 +387,7 @@
     async function warmLlamaServer() {
         try {
             console.log("🌅 Warming LLaMA server...");
-            await fetch('https://5dd65c12cd2a.ngrok-free.app/tstc/api/chat', {
+            await fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -410,6 +413,22 @@
     const disclaimerModal = document.getElementById('disclaimerModal');
     const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
 
+    window.pageStartTime = Date.now();
+    window.messageCount = (window.messageCount || 0) + 1;
+    window.tokenCount = (window.tokenCount || 0) + userText.length + fullText.length;
+
+
+    window.mouseTrail = [];
+
+    // We are listening for when the mouse moves and record the data
+    document.addEventListener('mousemove', e => {
+        const now = Date.now();
+        window.mouseTrail.push({ x: e.clientX, y: e.clientY, t: now });
+        if (window.mouseTrail.length > 500) {
+            window.mouseTrail.shift(); // prevent runaway memory
+        }
+    });
+    
     // Persona select, on each change we send a transcript.
     personaSelect.addEventListener('change', async () => {
         const previousPersona = currentPersonaSpan.textContent;
@@ -429,7 +448,7 @@
         `).join('');
 
             try {
-                await fetch('https://5dd65c12cd2a.ngrok-free.app/tstc/api/sendTranscript', {
+                await fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/sendTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -452,7 +471,7 @@
         const sessionLabel = `${newPersona}_${isoDate}`;
 
         try {
-            const res = await fetch('https://5dd65c12cd2a.ngrok-free.app/tstc/api/startSession', {
+            const res = await fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -519,7 +538,7 @@
             entry.dataset.user = userText; // 🧠 Save prompt for later
             transcriptEntries.push({ user: userText, ai: fullText });
             if (window.sessionId) {
-                fetch('https://5dd65c12cd2a.ngrok-free.app/tstc/api/saveTranscript', {
+                fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/saveTranscript', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -564,7 +583,7 @@
         };
 
         try {
-            await fetch('https://5dd65c12cd2a.ngrok-free.app/tstc/api/reportIssue', {
+            await fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/reportIssue', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -592,7 +611,7 @@
         // 🧠 Start a session with the current persona
         const persona = personaSelect.value;
         try {
-            const res = await fetch('https://5dd65c12cd2a.ngrok-free.app/tstc/api/startSession', {
+            const res = await fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/startSession', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail, persona })
@@ -652,24 +671,48 @@
             </div>
         `).join('');
 
-            // Use a Blob for sendBeacon
-            const blob = new Blob([JSON.stringify({
+            // === TRANSCRIPT SEND ===
+            const transcriptBlob = new Blob([JSON.stringify({
                 email: userEmail,
                 persona: personaSelect.value,
                 transcript: transcriptHTML
             })], { type: 'application/json' });
 
-            const success = navigator.sendBeacon(
-                'https://5dd65c12cd2a.ngrok-free.app/tstc/api/sendTranscript',
-                blob
+            const transcriptSuccess = navigator.sendBeacon(
+                'https://92c2281d08a2.ngrok-free.app/tstc/api/sendTranscript',
+                transcriptBlob
             );
 
-            if (!success) {
-                // Fallback: store in localStorage and try again later
-                localStorage.setItem('unsentTranscript', blob);
+            if (!transcriptSuccess) {
+                localStorage.setItem('unsentTranscript', transcriptHTML);
             }
         }
+
+        // === TELEMETRY SEND ===
+        const telemetry = {
+            sessionId: window.sessionId,
+            messageCount: window.messageCount || 0,
+            totalTokens: window.tokenCount || 0,
+            pageDurationSecs: Math.floor((Date.now() - (window.pageStartTime || Date.now())) / 1000),
+            mousePathData: { points: window.mouseTrail || [] },
+            endedAt: new Date().toISOString(),
+            isFavoritePersona: false,
+            abandoned: (window.messageCount || 0) === 0,
+            deviceInfo: {
+                userAgent: navigator.userAgent,
+                screen: `${screen.width}x${screen.height}`,
+                platform: navigator.platform
+            }
+        };
+
+        const telemetryBlob = new Blob([JSON.stringify(telemetry)], { type: 'application/json' });
+
+        navigator.sendBeacon(
+            'https://92c2281d08a2.ngrok-free.app/tstc/api/updateSessionTelemetry',
+            telemetryBlob
+        );
     });
+
 
     window.addEventListener('load', () => {
         // 🧠 Warm up the LLaMA backend
@@ -677,7 +720,7 @@
         
         const saved = localStorage.getItem('unsentTranscript');
         if (saved) {
-            fetch('https://5dd65c12cd2a.ngrok-free.app/tstc/api/sendTranscript', {
+            fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/sendTranscript', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: saved
