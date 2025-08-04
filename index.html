@@ -254,7 +254,7 @@
     
     //Data Tracking
     const userText = userInput.value.trim();
-    const fullText = json.message?.content ?? '';
+ //   const fullText = json.message?.content ?? '';
     let userEmail = '';
     let transcriptEntries = [];
 
@@ -415,7 +415,7 @@
 
     window.pageStartTime = Date.now();
     window.messageCount = (window.messageCount || 0) + 1;
-    window.tokenCount = (window.tokenCount || 0) + userText.length + fullText.length;
+   // window.tokenCount = (window.tokenCount || 0) + userText.length + fullText.length;
 
 
     window.mouseTrail = [];
@@ -599,32 +599,35 @@
             alert('Failed to send report.');
         }
     });
-    
-    acceptDisclaimerBtn.addEventListener('click', async () => {
-        const emailValue = userEmailInput.value.trim();
-        if (!emailValue || !emailValue.endsWith('@tstc.edu')) {
-            alert('Please enter a valid TSTC email address.');
-            return;
-        }
-        userEmail = emailValue.toLowerCase();
-        
-        // 🧠 Start a session with the current persona
-        const persona = personaSelect.value;
-        try {
-            const res = await fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/startSession', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: userEmail, persona })
-            });
 
-            const data = await res.json();
-            window.sessionId = data.sessionId; // Store it globally
-            console.log('✅ Session started. ID:', window.sessionId);
-        } catch (err) {
-            console.error('❌ Failed to start session:', err);
-        }
+    document.addEventListener("DOMContentLoaded", () => {
+        const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
 
-        disclaimerModal.style.display = 'none';
+        acceptDisclaimerBtn.addEventListener('click', async () => {
+            const emailValue = userEmailInput.value.trim();
+            if (!emailValue || !emailValue.endsWith('@tstc.edu')) {
+                alert('Please enter a valid TSTC email address.');
+                return;
+            }
+            userEmail = emailValue.toLowerCase();
+
+            const persona = personaSelect.value;
+            try {
+                const res = await fetch('https://92c2281d08a2.ngrok-free.app/tstc/api/startSession', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail, persona })
+                });
+
+                const data = await res.json();
+                window.sessionId = data.sessionId;
+                console.log('✅ Session started. ID:', window.sessionId);
+            } catch (err) {
+                console.error('❌ Failed to start session:', err);
+            }
+
+            disclaimerModal.style.display = 'none';
+        });
     });
     
     clearBtn.addEventListener('click', () => {
